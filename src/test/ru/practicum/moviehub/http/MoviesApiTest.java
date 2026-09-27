@@ -37,7 +37,7 @@ public class MoviesApiTest {
 
     @BeforeEach
     void beforeEach() {
-
+        server.getStore().clear();
     }
 
     @Test

@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Year;
 import java.util.*;
 
-import static ru.practicum.moviehub.Variables.*;
+import static ru.practicum.moviehub.Constants.*;
 
 public class MoviesHandler extends BaseHttpHandler {
     private final MoviesStore store;
@@ -41,40 +41,55 @@ public class MoviesHandler extends BaseHttpHandler {
             int idx = pair.indexOf('=');
             String key = idx >= 0 ? pair.substring(0, idx) : pair;
             String value = idx >= 0 ? pair.substring(idx + 1) : "";
-            result.put(URLDecoder.decode(key, StandardCharsets.UTF_8),
-                    URLDecoder.decode(value, StandardCharsets.UTF_8)
-            );
+            try {
+                result.put(
+                        URLDecoder.decode(key, StandardCharsets.UTF_8),
+                        URLDecoder.decode(value, StandardCharsets.UTF_8)
+                );
+            } catch (IllegalArgumentException e) {
+                result.put(key, value);
+            }
         }
         return result;
     }
 
     @Override
     public void handle(HttpExchange ex) throws IOException {
-        String method = ex.getRequestMethod();
-        String path = ex.getRequestURI().getPath();
+        try {
+            String method = ex.getRequestMethod();
+            String path = ex.getRequestURI().getPath();
 
-        String idPart = null;
-        if (path.length() > MOVIES_PATH.length()) {
-            idPart = path.substring(MOVIES_PATH.length());
-            if (idPart.startsWith("/")) {
-                idPart = idPart.substring(1);
+            if (!path.equals(MOVIES_PATH) && !path.startsWith(MOVIES_PATH + "/")) {
+                sendError(ex, SC_NOT_FOUND, "Ресурс не найден");
+                return;
             }
-        }
 
-        if (method.equalsIgnoreCase("GET")) {
-            if (idPart == null || idPart.isEmpty()) {
-                doGetAll(ex);
+            String idPart = path.equals(MOVIES_PATH)
+                    ? null
+                    : path.substring(MOVIES_PATH.length() + 1);
+
+            if (idPart != null && idPart.isEmpty()) {
+                sendError(ex, SC_NOT_FOUND, "Ресурс не найден");
+                return;
+            }
+
+            if (method.equalsIgnoreCase("GET")) {
+                if (idPart == null) {
+                    doGetAll(ex);
+                } else {
+                    doGetById(ex, idPart);
+                }
+            } else if (method.equalsIgnoreCase("POST") && idPart == null) {
+                doPost(ex);
+            } else if (method.equalsIgnoreCase("DELETE") && idPart != null) {
+                doDelete(ex, idPart);
             } else {
-                doGetById(ex, idPart);
+                sendError(ex, SC_METHOD_NOT_ALLOWED, "Метод не поддерживается");
             }
-        } else if (method.equalsIgnoreCase("POST")
-                && (idPart == null || idPart.isEmpty())) {
-            doPost(ex);
-        } else if (method.equalsIgnoreCase("DELETE")
-                && idPart != null && !idPart.isEmpty()) {
-            doDelete(ex, idPart);
-        } else {
-            sendError(ex, SC_METHOD_NOT_ALLOWED, "Метод не поддерживается");
+        } catch (IllegalArgumentException e) {
+            sendError(ex, SC_BAD_REQUEST, "Некорректный параметр запроса");
+        } catch (Exception e) {
+            sendError(ex, SC_INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера");
         }
     }
 
@@ -133,12 +148,14 @@ public class MoviesHandler extends BaseHttpHandler {
 
         List<String> details = new ArrayList<>();
 
-        String title = request.getTitle();
+        String title = request.getTitle() == null ? null : request.getTitle().trim();
         if (title == null || title.trim().isEmpty()) {
             details.add("Название не должно быть пустым");
         } else if (title.length() > MAX_TITLE_LENGTH) {
             details.add("Название не должно быть длиннее " + MAX_TITLE_LENGTH + " символов");
         }
+
+        Movie created = store.add(title, request.getYear());
 
         int maxYear = Year.now().getValue() + 1;
         if (request.getYear() == null) {
@@ -152,7 +169,6 @@ public class MoviesHandler extends BaseHttpHandler {
             return;
         }
 
-        Movie created = store.add(title.trim(), request.getYear());
         sendJson(ex, SC_CREATED, created);
     }
 

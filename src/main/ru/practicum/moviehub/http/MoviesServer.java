@@ -6,8 +6,8 @@ import ru.practicum.moviehub.store.MoviesStore;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import static ru.practicum.moviehub.Variables.MOVIES_PATH;
-import static ru.practicum.moviehub.Variables.PORT;
+import static ru.practicum.moviehub.Constants.MOVIES_PATH;
+import static ru.practicum.moviehub.Constants.PORT;
 
 public class MoviesServer {
     private final HttpServer server;

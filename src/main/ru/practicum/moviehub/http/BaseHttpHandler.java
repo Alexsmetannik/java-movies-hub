@@ -11,7 +11,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static ru.practicum.moviehub.Variables.*;
+import static ru.practicum.moviehub.Constants.*;
 
 public abstract class BaseHttpHandler implements HttpHandler {
     protected final Gson gson = new Gson();

@@ -17,9 +17,11 @@ import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static ru.practicum.moviehub.Variables.*;
+import static ru.practicum.moviehub.Constants.*;
 
 public class MoviesApiTest {
+    public static final int PORT = 8080;
+    public static final String BASE = "http://localhost:" + PORT;
     private static final Gson gson = new Gson();
     private static MoviesServer server;
     private static HttpClient client;

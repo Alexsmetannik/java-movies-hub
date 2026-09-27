@@ -9,6 +9,9 @@ import ru.practicum.moviehub.api.ErrorResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static ru.practicum.moviehub.Variables.*;
 
 public abstract class BaseHttpHandler implements HttpHandler {
     protected static final String CT_JSON = "application/json; charset=UTF-8";
@@ -32,7 +35,7 @@ public abstract class BaseHttpHandler implements HttpHandler {
 
     protected void sendNoContent(HttpExchange ex) throws IOException {
         ex.getResponseHeaders().set("Content-Type", CT_JSON);
-        ex.sendResponseHeaders(204, -1);
+        ex.sendResponseHeaders(SC_NO_CONTENT, -1);
         ex.close();
     }
 
@@ -42,6 +45,10 @@ public abstract class BaseHttpHandler implements HttpHandler {
 
     protected void sendError(HttpExchange ex, int status, String error, java.util.List<String> details) throws IOException {
         sendJson(ex, status, gson.toJson(ErrorResponse.of(error, details)));
+    }
+
+    protected void sendValidationError(HttpExchange ex, List<String> details) throws IOException {
+        sendError(ex, SC_UNPROCESSABLE_ENTITY, "Ошибка валидации", details);
     }
 
     protected String readBody(HttpExchange ex) throws IOException {

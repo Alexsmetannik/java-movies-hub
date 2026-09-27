@@ -30,6 +30,10 @@ public class MoviesStore {
         return Optional.ofNullable(movies.get(id));
     }
 
+    public boolean exists(int id) {
+        return movies.containsKey(id);
+    }
+
     public boolean delete(int id) {
         return movies.remove(id) != null;
     }

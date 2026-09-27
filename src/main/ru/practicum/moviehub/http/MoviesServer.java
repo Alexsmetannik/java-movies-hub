@@ -6,6 +6,8 @@ import ru.practicum.moviehub.store.MoviesStore;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+import static ru.practicum.moviehub.Variables.MOVIES_PATH;
+
 public class MoviesServer {
     private final HttpServer server;
     private final MoviesStore store;
@@ -14,7 +16,7 @@ public class MoviesServer {
         this.store = store;
         try {
             server = HttpServer.create(new InetSocketAddress(port), 0);
-            server.createContext("/movies", new MoviesHandler(store));
+            server.createContext(MOVIES_PATH, new MoviesHandler(store));
         } catch (IOException e) {
             throw new RuntimeException("Не удалось создать HTTP-сервер", e);
         }

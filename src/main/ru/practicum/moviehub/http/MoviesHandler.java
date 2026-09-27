@@ -21,14 +21,42 @@ public class MoviesHandler extends BaseHttpHandler {
         this.store = store;
     }
 
+    private static Integer tryParseInt(String value) {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Map<String, String> parseQuery(String rawQuery) {
+        Map<String, String> result = new HashMap<>();
+        if (rawQuery == null || rawQuery.isEmpty()) {
+            return result;
+        }
+        for (String pair : rawQuery.split("&")) {
+            int idx = pair.indexOf('=');
+            String key = idx >= 0 ? pair.substring(0, idx) : pair;
+            String value = idx >= 0 ? pair.substring(idx + 1) : "";
+            result.put(
+                    URLDecoder.decode(key, StandardCharsets.UTF_8),
+                    URLDecoder.decode(value, StandardCharsets.UTF_8)
+            );
+        }
+        return result;
+    }
+
     @Override
     public void handle(HttpExchange ex) throws IOException {
         String method = ex.getRequestMethod();
         String path = ex.getRequestURI().getPath();
 
         String idPart = null;
-        if (path.length() > "/movies".length()) {
-            idPart = path.substring("/movies".length());
+        if (path.length() > MOVIES_PATH.length()) {
+            idPart = path.substring(MOVIES_PATH.length());
             if (idPart.startsWith("/")) {
                 idPart = idPart.substring(1);
             }
@@ -140,33 +168,5 @@ public class MoviesHandler extends BaseHttpHandler {
         }
 
         sendNoContent(ex);
-    }
-
-    private static Integer tryParseInt(String value) {
-        if (value == null || value.isEmpty()) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private static Map<String, String> parseQuery(String rawQuery) {
-        Map<String, String> result = new HashMap<>();
-        if (rawQuery == null || rawQuery.isEmpty()) {
-            return result;
-        }
-        for (String pair : rawQuery.split("&")) {
-            int idx = pair.indexOf('=');
-            String key = idx >= 0 ? pair.substring(0, idx) : pair;
-            String value = idx >= 0 ? pair.substring(idx + 1) : "";
-            result.put(
-                    URLDecoder.decode(key, StandardCharsets.UTF_8),
-                    URLDecoder.decode(value, StandardCharsets.UTF_8)
-            );
-        }
-        return result;
     }
 }

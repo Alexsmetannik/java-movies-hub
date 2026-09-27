@@ -14,8 +14,6 @@ import java.util.List;
 import static ru.practicum.moviehub.Variables.*;
 
 public abstract class BaseHttpHandler implements HttpHandler {
-    protected static final String CT_JSON = "application/json; charset=UTF-8";
-
     protected final Gson gson = new Gson();
 
     protected void sendJson(HttpExchange ex, int status, String json) throws IOException {

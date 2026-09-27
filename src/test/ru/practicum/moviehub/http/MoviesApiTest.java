@@ -67,7 +67,7 @@ public class MoviesApiTest {
     void getMovies_whenEmpty_returnsEmptyArray() throws Exception {
         HttpResponse<String> resp = send("GET", BASE + MOVIES_PATH, null, null);
 
-        assertEquals(200, resp.statusCode());
+        assertEquals(SC_OK, resp.statusCode());
         assertEquals(CT_JSON, resp.headers().firstValue("Content-Type").orElse(""));
 
         List<Movie> movies = gson.fromJson(resp.body().trim(), new ListOfMoviesTypeToken().getType());
@@ -82,7 +82,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("GET", BASE + MOVIES_PATH, null, null);
 
-        assertEquals(200, resp.statusCode());
+        assertEquals(SC_OK, resp.statusCode());
         List<Movie> movies = gson.fromJson(resp.body().trim(), new ListOfMoviesTypeToken().getType());
         assertEquals(2, movies.size());
         assertEquals("Матрица", movies.get(0).getTitle());
@@ -114,7 +114,7 @@ public class MoviesApiTest {
         assertEquals(SC_UNPROCESSABLE_ENTITY, resp.statusCode());
         JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
         assertEquals("Ошибка валидации", error.get("error").getAsString());
-        assertTrue(error.getAsJsonArray("details").size() > 0);
+        assertFalse(error.getAsJsonArray("details").isEmpty());
     }
 
     @Test
@@ -171,7 +171,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("GET", BASE + "/movies/" + saved.getId(), null, null);
 
-        assertEquals(200, resp.statusCode());
+        assertEquals(SC_OK, resp.statusCode());
         Movie found = gson.fromJson(resp.body().trim(), Movie.class);
         assertEquals(saved.getId(), found.getId());
         assertEquals("Матрица", found.getTitle());
@@ -226,7 +226,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("GET", BASE + "/movies?year=1999", null, null);
 
-        assertEquals(200, resp.statusCode());
+        assertEquals(SC_OK, resp.statusCode());
         List<Movie> movies = gson.fromJson(resp.body().trim(), new ListOfMoviesTypeToken().getType());
         assertEquals(2, movies.size());
         assertTrue(movies.stream().allMatch(m -> m.getYear() == 1999));
@@ -238,7 +238,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("GET", BASE + "/movies?year=1900", null, null);
 
-        assertEquals(200, resp.statusCode());
+        assertEquals(SC_OK, resp.statusCode());
         List<Movie> movies = gson.fromJson(resp.body().trim(), new ListOfMoviesTypeToken().getType());
         assertTrue(movies.isEmpty());
     }

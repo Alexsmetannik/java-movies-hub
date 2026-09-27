@@ -1,7 +1,8 @@
 package ru.practicum.moviehub;
 
 public class Variables {
-    public static final String BASE = "http://localhost:8080";
+    public static final int PORT = 8080;
+    public static final String BASE = "http://localhost:" + PORT;
     public static final int MIN_YEAR = 1888;
     public static final int MAX_TITLE_LENGTH = 100;
     public static final String MOVIES_PATH = "/movies";

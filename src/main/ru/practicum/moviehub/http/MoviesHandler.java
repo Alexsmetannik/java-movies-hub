@@ -41,8 +41,7 @@ public class MoviesHandler extends BaseHttpHandler {
             int idx = pair.indexOf('=');
             String key = idx >= 0 ? pair.substring(0, idx) : pair;
             String value = idx >= 0 ? pair.substring(idx + 1) : "";
-            result.put(
-                    URLDecoder.decode(key, StandardCharsets.UTF_8),
+            result.put(URLDecoder.decode(key, StandardCharsets.UTF_8),
                     URLDecoder.decode(value, StandardCharsets.UTF_8)
             );
         }
@@ -68,9 +67,11 @@ public class MoviesHandler extends BaseHttpHandler {
             } else {
                 doGetById(ex, idPart);
             }
-        } else if (method.equalsIgnoreCase("POST") && (idPart == null || idPart.isEmpty())) {
+        } else if (method.equalsIgnoreCase("POST")
+                && (idPart == null || idPart.isEmpty())) {
             doPost(ex);
-        } else if (method.equalsIgnoreCase("DELETE") && idPart != null && !idPart.isEmpty()) {
+        } else if (method.equalsIgnoreCase("DELETE")
+                && idPart != null && !idPart.isEmpty()) {
             doDelete(ex, idPart);
         } else {
             sendError(ex, SC_METHOD_NOT_ALLOWED, "Метод не поддерживается");
@@ -134,16 +135,16 @@ public class MoviesHandler extends BaseHttpHandler {
 
         String title = request.getTitle();
         if (title == null || title.trim().isEmpty()) {
-            details.add("название не должно быть пустым");
+            details.add("Название не должно быть пустым");
         } else if (title.length() > MAX_TITLE_LENGTH) {
-            details.add("название не должно быть длиннее " + MAX_TITLE_LENGTH + " символов");
+            details.add("Название не должно быть длиннее " + MAX_TITLE_LENGTH + " символов");
         }
 
         int maxYear = Year.now().getValue() + 1;
         if (request.getYear() == null) {
-            details.add("год должен быть между " + MIN_YEAR + " и " + maxYear);
+            details.add("Год должен быть между " + MIN_YEAR + " и " + maxYear);
         } else if (request.getYear() < MIN_YEAR || request.getYear() > maxYear) {
-            details.add("год должен быть между " + MIN_YEAR + " и " + maxYear);
+            details.add("Год должен быть между " + MIN_YEAR + " и " + maxYear);
         }
 
         if (!details.isEmpty()) {

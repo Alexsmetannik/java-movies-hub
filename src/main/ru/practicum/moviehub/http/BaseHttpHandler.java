@@ -41,12 +41,12 @@ public abstract class BaseHttpHandler implements HttpHandler {
         sendJson(ex, status, gson.toJson(ErrorResponse.of(error)));
     }
 
-    protected void sendError(HttpExchange ex, int status, String error, java.util.List<String> details) throws IOException {
-        sendJson(ex, status, gson.toJson(ErrorResponse.of(error, details)));
+    protected void sendError(HttpExchange ex, List<String> details) throws IOException {
+        sendJson(ex, SC_UNPROCESSABLE_ENTITY, gson.toJson(ErrorResponse.of("Ошибка валидации", details)));
     }
 
     protected void sendValidationError(HttpExchange ex, List<String> details) throws IOException {
-        sendError(ex, SC_UNPROCESSABLE_ENTITY, "Ошибка валидации", details);
+        sendError(ex, details);
     }
 
     protected String readBody(HttpExchange ex) throws IOException {

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import static ru.practicum.moviehub.Variables.MOVIES_PATH;
+import static ru.practicum.moviehub.Variables.PORT;
 
 public class MoviesServer {
     private final HttpServer server;
@@ -23,7 +24,7 @@ public class MoviesServer {
     }
 
     public MoviesServer() {
-        this(new MoviesStore(), 8080);
+        this(new MoviesStore(), PORT);
     }
 
     public MoviesStore getStore() {

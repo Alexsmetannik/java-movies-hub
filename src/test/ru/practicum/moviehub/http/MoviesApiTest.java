@@ -20,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static ru.practicum.moviehub.Constants.*;
 
 public class MoviesApiTest {
-    public static final int PORT = 8080;
-    public static final String BASE = "http://localhost:" + PORT;
+    private static final int PORT = 8080;
+    private static final String BASE = "http://localhost:" + PORT;
+    private static final int CURRENT_YEAR = java.time.Year.now().getValue();
+    private static final int MAX_YEAR = CURRENT_YEAR + 1;
     private static final Gson gson = new Gson();
     private static MoviesServer server;
     private static HttpClient client;
@@ -43,6 +45,27 @@ public class MoviesApiTest {
         }
 
         return client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    }
+
+    private static void assertErrorResponse(HttpResponse<String> resp, int expectedStatus) {
+        assertEquals(expectedStatus, resp.statusCode(), "Неверный статус ответа");
+        assertEquals(CT_JSON, resp.headers().firstValue("Content-Type").orElse(""),
+                "Ошибка должна приходить с Content-Type application/json; charset=UTF-8");
+
+        JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
+        assertNotNull(error, "Тело ошибки должно быть JSON-объектом");
+        assertNotNull(error.get("error"), "В теле ошибки должно быть поле error");
+        assertFalse(error.get("error").getAsString().isEmpty(),
+                "Поле error не должно быть пустым");
+    }
+
+    private static void assertValidationError(HttpResponse<String> resp) {
+        assertErrorResponse(resp, SC_UNPROCESSABLE_ENTITY);
+        JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
+        assertNotNull(error.getAsJsonArray("details"), "У 422 должен быть массив details");
+        assertFalse(error.getAsJsonArray("details").isEmpty(),
+                "Массив details не должен быть пустым");
+        assertEquals("Ошибка валидации", error.get("error").getAsString());
     }
 
     @BeforeAll
@@ -75,7 +98,6 @@ public class MoviesApiTest {
         assertTrue(movies.isEmpty(), "Ожидается пустой массив");
     }
 
-
     @Test
     void getMovies_whenHasItems_returnsAll() throws Exception {
         server.getStore().add("Матрица", 1999);
@@ -92,12 +114,25 @@ public class MoviesApiTest {
     }
 
     @Test
+    void getMovies_whenPathIsNotMovies_returns404() throws Exception {
+        HttpResponse<String> resp = send("GET", BASE + "/movies123", null, null);
+        assertErrorResponse(resp, SC_NOT_FOUND);
+    }
+
+    @Test
+    void getMovies_whenBrokenPercentInQuery_returns400() throws Exception {
+        HttpResponse<String> resp = send("GET", BASE + MOVIES_PATH + "?year=%", null,
+                null);
+        assertErrorResponse(resp, SC_BAD_REQUEST);
+    }
+
+    @Test
     void postMovies_whenValid_returns201AndCreatedMovie() throws Exception {
         String json = "{\"title\":\"Интерстеллар\",\"year\":2014}";
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
 
-        assertEquals(201, resp.statusCode());
+        assertEquals(SC_CREATED, resp.statusCode());
         assertEquals(CT_JSON, resp.headers().firstValue("Content-Type").orElse(""));
         Movie created = gson.fromJson(resp.body().trim(), Movie.class);
         assertTrue(created.getId() > 0, "id должен быть присвоен");
@@ -111,22 +146,83 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
 
-        assertEquals(SC_UNPROCESSABLE_ENTITY, resp.statusCode());
-        JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
-        assertEquals("Ошибка валидации", error.get("error").getAsString());
-        assertFalse(error.getAsJsonArray("details").isEmpty());
+        assertValidationError(resp);
     }
 
     @Test
     void postMovies_whenTitleTooLong_returns422() throws Exception {
-        String longTitle = "a".repeat(101);
+        String longTitle = "a".repeat(MAX_TITLE_LENGTH + 1);
         String json = "{\"title\":\"" + longTitle + "\",\"year\":2014}";
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
 
-        assertEquals(SC_UNPROCESSABLE_ENTITY, resp.statusCode());
-        JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
-        assertEquals("Ошибка валидации", error.get("error").getAsString());
+        assertValidationError(resp);
+    }
+
+    @Test
+    void postMovies_whenTitleExactly100_returns201() throws Exception {
+        String title = "a".repeat(MAX_TITLE_LENGTH);
+        String json = "{\"title\":\"" + title + "\",\"year\":2014}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertEquals(SC_CREATED, resp.statusCode());
+    }
+
+    @Test
+    void postMovies_whenTitle101_returns422() throws Exception {
+        String title = "a".repeat(MAX_TITLE_LENGTH + 1);
+        String json = "{\"title\":\"" + title + "\",\"year\":2014}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertValidationError(resp);
+    }
+
+    @Test
+    void postMovies_whenTitleHasLeadingSpaceOfExact100_returns201() throws Exception {
+        String title = " " + "a".repeat(MAX_TITLE_LENGTH - 1);
+        String json = "{\"title\":\"" + title + "\",\"year\":2014}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertEquals(SC_CREATED, resp.statusCode(), "После trim длина = 100, должно быть 201");
+    }
+
+    @Test
+    void postMovies_whenYearAtLowerBound_returns201() throws Exception {
+        String json = "{\"title\":\"Рождённый в 1888\",\"year\":" + MIN_YEAR + "}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertEquals(SC_CREATED, resp.statusCode());
+    }
+
+    @Test
+    void postMovies_whenYearBelowLowerBound_returns422() throws Exception {
+        String json = "{\"title\":\"Слишком старый\",\"year\":" + (MIN_YEAR - 1) + "}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertValidationError(resp);
+    }
+
+    @Test
+    void postMovies_whenYearAtUpperBound_returns201() throws Exception {
+        String json = "{\"title\":\"Почти будущий\",\"year\":" + MAX_YEAR + "}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertEquals(SC_CREATED, resp.statusCode());
+    }
+
+    @Test
+    void postMovies_whenYearAboveUpperBound_returns422() throws Exception {
+        String json = "{\"title\":\"Слишком будущий\",\"year\":" + (MAX_YEAR + 1) + "}";
+
+        HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
+
+        assertValidationError(resp);
     }
 
     @Test
@@ -135,7 +231,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
 
-        assertEquals(SC_UNPROCESSABLE_ENTITY, resp.statusCode());
+        assertValidationError(resp);
     }
 
     @Test
@@ -144,7 +240,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
 
-        assertEquals(SC_UNPROCESSABLE_ENTITY, resp.statusCode());
+        assertValidationError(resp);
     }
 
     @Test
@@ -153,7 +249,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, "text/plain");
 
-        assertEquals(SC_UNSUPPORTED_MEDIA_TYPE, resp.statusCode());
+        assertErrorResponse(resp, SC_UNSUPPORTED_MEDIA_TYPE);
     }
 
     @Test
@@ -162,7 +258,7 @@ public class MoviesApiTest {
 
         HttpResponse<String> resp = send("POST", BASE + MOVIES_PATH, json, CT_JSON);
 
-        assertEquals(SC_UNPROCESSABLE_ENTITY, resp.statusCode());
+        assertErrorResponse(resp, SC_UNPROCESSABLE_ENTITY);
     }
 
     @Test
@@ -183,16 +279,14 @@ public class MoviesApiTest {
     void getMovieById_whenNotFound_returns404() throws Exception {
         HttpResponse<String> resp = send("GET", BASE + "/movies/9999", null, null);
 
-        assertEquals(SC_NOT_FOUND, resp.statusCode());
-        JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
-        assertNotNull(error.get("error"));
+        assertErrorResponse(resp, SC_NOT_FOUND);
     }
 
     @Test
     void getMovieById_whenIdNotNumber_returns400() throws Exception {
         HttpResponse<String> resp = send("GET", BASE + "/movies/abc", null, null);
 
-        assertEquals(SC_BAD_REQUEST, resp.statusCode());
+        assertErrorResponse(resp, SC_BAD_REQUEST);
     }
 
     @Test
@@ -210,14 +304,14 @@ public class MoviesApiTest {
     void deleteMovie_whenNotFound_returns404() throws Exception {
         HttpResponse<String> resp = send("DELETE", BASE + "/movies/9999", null, null);
 
-        assertEquals(SC_NOT_FOUND, resp.statusCode());
+        assertErrorResponse(resp, SC_NOT_FOUND);
     }
 
     @Test
     void deleteMovie_whenIdNotNumber_returns400() throws Exception {
         HttpResponse<String> resp = send("DELETE", BASE + "/movies/abc", null, null);
 
-        assertEquals(SC_BAD_REQUEST, resp.statusCode());
+        assertErrorResponse(resp, SC_BAD_REQUEST);
     }
 
     @Test
@@ -249,15 +343,13 @@ public class MoviesApiTest {
     void getMoviesByYear_whenNotNumber_returns400() throws Exception {
         HttpResponse<String> resp = send("GET", BASE + "/movies?year=abc", null, null);
 
-        assertEquals(SC_BAD_REQUEST, resp.statusCode());
-        JsonObject error = gson.fromJson(resp.body().trim(), JsonObject.class);
-        assertNotNull(error.get("error"));
+        assertErrorResponse(resp, SC_BAD_REQUEST);
     }
 
     @Test
     void unsupportedMethod_returns405() throws Exception {
         HttpResponse<String> resp = send("PUT", BASE + MOVIES_PATH, "{}", CT_JSON);
 
-        assertEquals(SC_METHOD_NOT_ALLOWED, resp.statusCode());
+        assertErrorResponse(resp, SC_METHOD_NOT_ALLOWED);
     }
 }

@@ -7,15 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class MoviesStore {
     private final Map<Integer, Movie> movies = new ConcurrentHashMap<>();
-    private final AtomicInteger idSequence = new AtomicInteger(0);
+    private int idSequence = 0;
 
     public Movie add(String title, int year) {
-        int id = idSequence.incrementAndGet();
+        int id = ++idSequence;
         Movie movie = new Movie(id, title, year);
         movies.put(id, movie);
         return movie;
@@ -44,6 +43,6 @@ public class MoviesStore {
 
     public void clear() {
         movies.clear();
-        idSequence.set(0);
+        idSequence = 0;
     }
 }

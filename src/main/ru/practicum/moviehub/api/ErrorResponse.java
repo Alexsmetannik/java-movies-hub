@@ -16,6 +16,14 @@ public class ErrorResponse {
         this.details = details;
     }
 
+    public static ErrorResponse of(String error) {
+        return new ErrorResponse(error, new ArrayList<>());
+    }
+
+    public static ErrorResponse of(String error, List<String> details) {
+        return new ErrorResponse(error, details);
+    }
+
     public String getError() {
         return error;
     }
@@ -30,13 +38,5 @@ public class ErrorResponse {
 
     public void setDetails(List<String> details) {
         this.details = details;
-    }
-
-    public static ErrorResponse of(String error) {
-        return new ErrorResponse(error, new ArrayList<>());
-    }
-
-    public static ErrorResponse of(String error, List<String> details) {
-        return new ErrorResponse(error, details);
     }
 }

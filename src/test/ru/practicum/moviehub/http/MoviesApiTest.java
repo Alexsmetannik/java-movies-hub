@@ -69,7 +69,6 @@ public class MoviesApiTest {
 
         assertEquals(SC_OK, resp.statusCode());
         assertEquals(CT_JSON, resp.headers().firstValue("Content-Type").orElse(""));
-
         List<Movie> movies = gson.fromJson(resp.body().trim(), new ListOfMoviesTypeToken().getType());
         assertTrue(movies.isEmpty(), "Ожидается пустой массив");
     }
@@ -98,7 +97,6 @@ public class MoviesApiTest {
 
         assertEquals(201, resp.statusCode());
         assertEquals(CT_JSON, resp.headers().firstValue("Content-Type").orElse(""));
-
         Movie created = gson.fromJson(resp.body().trim(), Movie.class);
         assertTrue(created.getId() > 0, "id должен быть присвоен");
         assertEquals("Интерстеллар", created.getTitle());
@@ -169,7 +167,8 @@ public class MoviesApiTest {
     void getMovieById_whenExists_returnsMovie() throws Exception {
         Movie saved = server.getStore().add("Матрица", 1999);
 
-        HttpResponse<String> resp = send("GET", BASE + "/movies/" + saved.getId(), null, null);
+        HttpResponse<String> resp = send("GET", BASE + "/movies/" + saved.getId(), null,
+                null);
 
         assertEquals(SC_OK, resp.statusCode());
         Movie found = gson.fromJson(resp.body().trim(), Movie.class);
@@ -198,7 +197,8 @@ public class MoviesApiTest {
     void deleteMovie_whenExists_returns204() throws Exception {
         Movie saved = server.getStore().add("Матрица", 1999);
 
-        HttpResponse<String> resp = send("DELETE", BASE + "/movies/" + saved.getId(), null, null);
+        HttpResponse<String> resp = send("DELETE", BASE + "/movies/" + saved.getId(), null,
+                null);
 
         assertEquals(SC_NO_CONTENT, resp.statusCode());
         assertEquals(0, server.getStore().getAll().size(), "Фильм должен быть удалён");

@@ -155,8 +155,6 @@ public class MoviesHandler extends BaseHttpHandler {
             details.add("Название не должно быть длиннее " + MAX_TITLE_LENGTH + " символов");
         }
 
-        Movie created = store.add(title, request.getYear());
-
         int maxYear = Year.now().getValue() + 1;
         if (request.getYear() == null) {
             details.add("Год должен быть между " + MIN_YEAR + " и " + maxYear);
@@ -169,6 +167,7 @@ public class MoviesHandler extends BaseHttpHandler {
             return;
         }
 
+        Movie created = store.add(title, request.getYear());
         sendJson(ex, SC_CREATED, created);
     }
 

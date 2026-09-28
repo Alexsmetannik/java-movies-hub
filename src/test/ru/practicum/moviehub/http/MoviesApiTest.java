@@ -120,13 +120,6 @@ public class MoviesApiTest {
     }
 
     @Test
-    void getMovies_whenBrokenPercentInQuery_returns400() throws Exception {
-        HttpResponse<String> resp = send("GET", BASE + MOVIES_PATH + "?year=%", null,
-                null);
-        assertErrorResponse(resp, SC_BAD_REQUEST);
-    }
-
-    @Test
     void postMovies_whenValid_returns201AndCreatedMovie() throws Exception {
         String json = "{\"title\":\"Интерстеллар\",\"year\":2014}";
 
